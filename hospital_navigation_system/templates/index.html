@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MedNav AI — Hospital Navigation System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo">
+      <div class="logo-icon">✚</div>
+      <div class="logo-text">
+        <span class="logo-name">MedNav</span>
+        <span class="logo-tag">AI NAVIGATION SYSTEM</span>
+      </div>
+    </div>
+  </div>
+  <div class="header-center">
+    <div class="header-pills">
+      <div class="hpill"><span class="hpill-dot"></span>System Online</div>
+      <div class="hpill" id="clock-pill">00:00:00</div>
+      <div class="hpill" id="algo-active-pill">A* Search</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="hpill v2">v3.0.0</div>
+  </div>
+</header>
+
+<!-- ═══════════════ MAIN LAYOUT ═══════════════ -->
+<div class="main-layout">
+
+  <!-- ───────── LEFT PANEL ───────── -->
+  <aside class="left-panel">
+
+    <!-- Navigation Control -->
+    <div class="panel-section">
+      <div class="section-label">Navigation Control</div>
+      <div class="field-row">
+        <div class="field-label">START LOCATION</div>
+        <div class="select-wrap">
+          <select id="start-sel" class="custom-select">
+            <option value="">— Select Start —</option>
+            {% for n in all_nodes %}{% if not n.startswith('Elevator') %}
+            <option value="{{ n }}">{{ n }}</option>
+            {% endif %}{% endfor %}
+          </select>
+          <span class="select-icon">⌄</span>
+        </div>
+      </div>
+      <div class="swap-row">
+        <button class="swap-btn" id="swap-btn" title="Swap start and destination">
+          <span>⇅</span> SWAP
+        </button>
+      </div>
+      <div class="field-row">
+        <div class="field-label">DESTINATION</div>
+        <div class="select-wrap">
+          <select id="goal-sel" class="custom-select">
+            <option value="">— Select Destination —</option>
+            {% for n in all_nodes %}{% if not n.startswith('Elevator') %}
+            <option value="{{ n }}">{{ n }}</option>
+            {% endif %}{% endfor %}
+          </select>
+          <span class="select-icon">⌄</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Algorithm Picker -->
+    <div class="panel-section">
+      <div class="section-label">AI Algorithm</div>
+      <div class="algo-grid">
+        <label class="algo-card" data-algo="bfs">
+          <input type="radio" name="algo" value="bfs"/>
+          <div class="algo-inner">
+            <span class="algo-abbr" style="color:#38bdf8">BFS</span>
+            <span class="algo-name">Breadth-First</span>
+            <span class="algo-hint">Level by level</span>
+          </div>
+        </label>
+        <label class="algo-card" data-algo="dfs">
+          <input type="radio" name="algo" value="dfs"/>
+          <div class="algo-inner">
+            <span class="algo-abbr" style="color:#fb923c">DFS</span>
+            <span class="algo-name">Depth-First</span>
+            <span class="algo-hint">Deep branch first</span>
+          </div>
+        </label>
+        <label class="algo-card" data-algo="ucs">
+          <input type="radio" name="algo" value="ucs"/>
+          <div class="algo-inner">
+            <span class="algo-abbr" style="color:#34d399">UCS</span>
+            <span class="algo-name">Uniform Cost</span>
+            <span class="algo-hint">Optimal by weight</span>
+          </div>
+        </label>
+        <label class="algo-card active" data-algo="astar">
+          <input type="radio" name="algo" value="astar" checked/>
+          <div class="algo-inner">
+            <span class="algo-abbr" style="color:#a78bfa">A*</span>
+            <span class="algo-name">A* Search</span>
+            <span class="algo-hint">Heuristic optimal</span>
+          </div>
+        </label>
+        <label class="algo-card" data-algo="gbfs">
+          <input type="radio" name="algo" value="gbfs"/>
+          <div class="algo-inner">
+            <span class="algo-abbr" style="color:#22d3ee">GBFS</span>
+            <span class="algo-name">Greedy Best-First</span>
+            <span class="algo-hint">Heuristic greedy</span>
+          </div>
+        </label>
+        <label class="algo-card" data-algo="minimax">
+          <input type="radio" name="algo" value="minimax"/>
+          <div class="algo-inner">
+            <span class="algo-abbr" style="color:#fbbf24">MM</span>
+            <span class="algo-name">Minimax</span>
+            <span class="algo-hint">Adversarial α-β</span>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Bayes Symptom Checker -->
+    <div class="panel-section" id="bayes-sec">
+      <div class="section-label">🧠 Bayes Dept Predictor</div>
+      <div class="bayes-intro">Select symptoms to predict the most likely department using <strong>Naïve Bayes theorem</strong>.</div>
+      <div class="bayes-features" id="bayes-features">
+        {% for feat, label in feature_labels.items() %}
+        <label class="bayes-feat-label">
+          <input type="checkbox" class="bayes-check" value="{{ feat }}"/>
+          <span>{{ label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      <button class="btn-bayes" id="bayes-btn">
+        <span class="btn-icon">⚕</span>
+        <span>PREDICT DEPARTMENT</span>
+      </button>
+      <div id="bayes-result" style="display:none"></div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="btn-group">
+      <button class="btn-primary" id="find-btn">
+        <span class="btn-icon">◈</span>
+        <span>FIND ROUTE</span>
+      </button>
+      <button class="btn-secondary" id="csp-btn">
+        <span class="btn-icon">⧉</span>
+        <span>CSP SCHEDULE</span>
+      </button>
+      <a href="/analysis" target="_blank" class="btn-analysis">
+        <span class="btn-icon">📊</span>
+        <span>ANALYSIS REPORT</span>
+      </a>
+    </div>
+
+    <!-- Route Results -->
+    <div class="panel-section" id="results-sec" style="display:none">
+      <div class="section-label">Route Analysis</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">ALGORITHM</span>
+          <span class="stat-val small" id="res-algo">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">TOTAL COST</span>
+          <span class="stat-val accent" id="res-cost">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">PATH STEPS</span>
+          <span class="stat-val" id="res-steps">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">NODES VISITED</span>
+          <span class="stat-val" id="res-visited">—</span>
+        </div>
+      </div>
+
+      <!-- path breadcrumb -->
+      <div class="path-crumb" id="path-crumb"></div>
+
+      <!-- minimax extra -->
+      <div id="mm-extra" style="display:none" class="mm-card">
+        <div class="mm-row"><span class="mm-k">GAME SCORE</span><span class="mm-v accent" id="mm-score">—</span></div>
+        <div class="mm-row"><span class="mm-k">MAX PLAYER</span><span class="mm-v">Patient (shortest path)</span></div>
+        <div class="mm-row"><span class="mm-k">MIN PLAYER</span><span class="mm-v">Adversary (block route)</span></div>
+        <div class="mm-row"><span class="mm-k">PRUNING</span><span class="mm-v">Alpha-Beta, depth=5</span></div>
+      </div>
+    </div>
+
+    <!-- Traversal Log -->
+    <div class="panel-section" id="log-sec" style="display:none">
+      <div class="section-label">Traversal Log</div>
+      <div class="tlog" id="tlog"></div>
+    </div>
+
+    <!-- CSP Output -->
+    <div class="panel-section" id="csp-sec" style="display:none">
+      <div class="section-label">CSP Schedule Result</div>
+      <div id="csp-output"></div>
+    </div>
+
+  </aside>
+
+  <!-- ───────── MAP AREA ───────── -->
+  <div class="map-area">
+    <div class="map-topbar">
+      <span class="map-title">HOSPITAL FLOOR PLAN</span>
+      <div class="map-legend">
+        <div class="leg-item"><span class="leg-dot" style="background:#00d4ff;box-shadow:0 0 6px #00d4ff"></span>Start</div>
+        <div class="leg-item"><span class="leg-dot" style="background:#00f585;box-shadow:0 0 6px #00f585"></span>Goal</div>
+        <div class="leg-item"><span class="leg-dot" style="background:#a855f7;box-shadow:0 0 6px #a855f7"></span>Optimal Path</div>
+        <div class="leg-item"><span class="leg-dot" style="background:#334155"></span>Visited</div>
+        <div class="leg-item"><span style="font-size:13px">♿</span> Patient</div>
+      </div>
+      <div class="map-actions">
+        <button class="map-btn" id="reset-btn">↺ Reset</button>
+        <button class="map-btn primary-outline" id="anim-btn" disabled>▶ Animate</button>
+      </div>
+    </div>
+
+    <!-- SVG MAP -->
+    <div class="map-canvas-wrap">
+      <svg id="hospital-svg" viewBox="0 0 1060 600" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="f-teal" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="f-green" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="7" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="f-purple" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="f-amber" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="4" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <linearGradient id="edge-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#a855f7" stop-opacity="0.8"/>
+          </linearGradient>
+          <style>
+            .edge-base { stroke: #1e3a5a; stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; }
+            .edge-visited { stroke: #334155; stroke-width: 2; fill: none; transition: stroke 0.3s; }
+            .edge-path { stroke: url(#edge-grad); stroke-width: 3.5; stroke-linecap: round;
+                         fill: none; filter: url(#f-purple); animation: flowPath 1.5s linear infinite; }
+            @keyframes flowPath {
+              0%   { stroke-dasharray: 12 8; stroke-dashoffset: 0; }
+              100% { stroke-dasharray: 12 8; stroke-dashoffset: -40; }
+            }
+            .edge-wc { stroke: #00d4ff; stroke-width: 3; stroke-linecap: round; fill: none;
+                       opacity: 0.5; animation: flowWC 0.8s linear infinite; }
+            @keyframes flowWC { to { stroke-dashoffset: -20; } }
+            .node-base { fill: #0d1e35; stroke-width: 2; cursor: pointer; transition: all 0.2s; }
+            .node-base:hover { stroke-width: 3; }
+            .node-ring { fill: none; stroke-width: 1; opacity: 0.25; }
+            .node-visited { fill: #1a2a3a; }
+            .node-path { fill: #1a1040; }
+            .node-start { fill: #003a50; }
+            .node-goal  { fill: #00351a; }
+            .elev-base { fill: #0a1828; stroke: #2a5a7a; stroke-width: 1.5; rx: 6; cursor: pointer; }
+            @keyframes pulse-ring {
+              0%   { r: 28; opacity: 0.5; }
+              100% { r: 40; opacity: 0; }
+            }
+            .pulse-anim { animation: pulse-ring 1s ease-out infinite; }
+            .wc-group { pointer-events: none; }
+            @keyframes wc-move { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-2px); } }
+          .btn-analysis {
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  width:100%;border-radius:var(--radius);padding:10px;
+  font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;
+  font-family:var(--sans);letter-spacing:.05em;border:1px solid;
+  background:linear-gradient(135deg,#0a2a0a,#051505);
+  border-color:var(--green);color:var(--green);text-decoration:none;
+}
+.btn-analysis:hover{background:linear-gradient(135deg,#0f3a0f,#0a2a0a);box-shadow:0 0 24px #00f58530;}
+</style>
+        </defs>
+
+        <!-- Floor 1 background -->
+        <rect x="10" y="10" width="620" height="580" rx="16"
+              fill="#080f1e" stroke="#1a3550" stroke-width="1.5"/>
+        <text x="30" y="36" font-family="JetBrains Mono" font-size="11"
+              fill="#1a4060" letter-spacing="2">FLOOR 1 — GROUND</text>
+
+        <!-- Floor 2 background -->
+        <rect x="645" y="10" width="405" height="580" rx="16"
+              fill="#0e0820" stroke="#2d1555" stroke-width="1.5"/>
+        <text x="665" y="36" font-family="JetBrains Mono" font-size="11"
+              fill="#3d1a70" letter-spacing="2">FLOOR 2 — UPPER</text>
+
+        <!-- elevator bridge indicator -->
+        <line x1="630" y1="300" x2="645" y2="300" stroke="#2a5a6a" stroke-width="1" stroke-dasharray="3 3"/>
+
+        <g id="g-edges"></g>
+        <g id="g-path-edges"></g>
+        <g id="g-nodes"></g>
+
+        <!-- Wheelchair token -->
+        <g id="g-wheelchair" class="wc-group" style="display:none; will-change:transform">
+          <circle r="20" fill="#001c2e" stroke="#00d4ff" stroke-width="2.5" opacity="0.97"/>
+          <circle r="28" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0">
+            <animate attributeName="r" values="20;36" dur="0.9s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.7;0" dur="0.9s" repeatCount="indefinite"/>
+          </circle>
+          <text text-anchor="middle" dominant-baseline="central"
+                font-size="18" y="0" style="animation: wc-move 1s ease-in-out infinite">♿</text>
+        </g>
+      </svg>
+    </div>
+
+    <!-- Step bar -->
+    <div class="step-bar" id="step-bar" style="display:none">
+      <span class="step-label">STEP</span>
+      <span class="step-num" id="step-num">0</span>
+      <span class="step-sep">/</span>
+      <span class="step-tot" id="step-tot">0</span>
+      <div class="step-node-tag" id="step-tag">—</div>
+      <div class="step-progress-wrap">
+        <div class="step-progress-bar" id="step-progress"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───────── RIGHT PANEL ───────── -->
+  <aside class="right-panel">
+
+    <div class="panel-section">
+      <div class="section-label">Department Info</div>
+      <div id="dept-info-box">
+        <div class="empty-state">
+          <div class="empty-icon">🏥</div>
+          <p>Click any department node<br/>on the map to view details</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Algorithm Info</div>
+      <div class="algo-info-box" id="algo-info-box">
+        <div class="algo-info-name" id="algo-info-name">A* Search</div>
+        <div class="algo-info-text" id="algo-info-text">
+          A* combines actual path cost g(n) with a heuristic estimate h(n) to the goal.
+          It guarantees the optimal path while exploring significantly fewer nodes than UCS.
+          Ideal when you need both optimality and speed.
+        </div>
+        <div class="algo-badges" id="algo-badges">
+          <span class="algo-badge green">Optimal</span>
+          <span class="algo-badge blue">Complete</span>
+          <span class="algo-badge purple">Heuristic</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">PEAS Model</div>
+      <div class="peas-grid">
+        <div class="peas-card">
+          <span class="peas-letter" style="color:#00d4ff">P</span>
+          <span class="peas-title">Performance</span>
+          <span class="peas-val">Shortest · Safe · Fast route</span>
+        </div>
+        <div class="peas-card">
+          <span class="peas-letter" style="color:#00f585">E</span>
+          <span class="peas-title">Environment</span>
+          <span class="peas-val">Rooms · Corridors · Elevators</span>
+        </div>
+        <div class="peas-card">
+          <span class="peas-letter" style="color:#fbbf24">A</span>
+          <span class="peas-title">Actuators</span>
+          <span class="peas-val">Route display · Animation</span>
+        </div>
+        <div class="peas-card">
+          <span class="peas-letter" style="color:#a855f7">S</span>
+          <span class="peas-title">Sensors</span>
+          <span class="peas-val">User input · Map data</span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  DATA from Flask
+// ════════════════════════════════════════════════════════
+const GRAPH    = {{ graph | tojson }};
+const NODE_POS = {{ node_positions | tojson }};
+
+// SVG canvas dimensions (must match viewBox)
+const SVG_W = 1060, SVG_H = 600;
+// Floor 1 canvas:  x: 10..630, y: 10..590  → usable 620×580
+// Floor 2 canvas:  x: 645..1050, y: 10..590 → usable 405×580
+function toSVG(node) {
+  const p = NODE_POS[node];
+  if (p.floor === 1) {
+    return { x: 10 + (p.x / 60) * 620, y: 10 + (p.y / 100) * 580 };
+  } else {
+    // floor 2 x is in range [62,100] → remap to [645,1050]
+    const xFrac = (p.x - 62) / 38;
+    return { x: 645 + xFrac * 405, y: 10 + (p.y / 100) * 580 };
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  DEPARTMENT META
+// ════════════════════════════════════════════════════════
+const DEPT_META = {
+  Reception:  { icon:"🏢", color:"#00d4ff", floor:"Ground Floor", desc:"Main entry point. Visitor registration, info desk and patient triage." },
+  OPD:        { icon:"👨‍⚕️", color:"#38bdf8", floor:"Ground Floor", desc:"Outpatient Department. Consultations without hospital admission." },
+  Emergency:  { icon:"🚨", color:"#ef4444", floor:"Ground Floor", desc:"24/7 emergency & critical care. Highest priority department." },
+  ICU:        { icon:"💉", color:"#fbbf24", floor:"Upper Floor",  desc:"Intensive Care Unit. Continuous monitoring for critical patients." },
+  OT:         { icon:"🔬", color:"#a855f7", floor:"Upper Floor",  desc:"Operation Theatre. Sterile surgical environment — must follow ICU." },
+  "X-Ray":    { icon:"🩻", color:"#34d399", floor:"Ground Floor", desc:"Radiology unit: X-rays, CT scans and diagnostic imaging." },
+  Laboratory: { icon:"🧪", color:"#fb923c", floor:"Ground Floor", desc:"Clinical lab: blood tests, urine analysis and diagnostics." },
+  Pharmacy:   { icon:"💊", color:"#22d3ee", floor:"Ground Floor", desc:"Prescription dispensing and medication store. Open 24/7." },
+  Ward:       { icon:"🛏️", color:"#9b5de5", floor:"Upper Floor",  desc:"General inpatient wards. Supervised recovery and observation." },
+  Elevator_A: { icon:"🛗", color:"#64748b", floor:"Ground Floor", desc:"West elevator connecting Ground and Upper floor." },
+  Elevator_B: { icon:"🛗", color:"#64748b", floor:"Upper Floor",  desc:"East elevator connecting Ground and Upper floor." },
+};
+
+// ════════════════════════════════════════════════════════
+//  ALGORITHM DESCRIPTIONS
+// ════════════════════════════════════════════════════════
+const ALGO_META = {
+  bfs: {
+    name: "Breadth-First Search",
+    desc: "Explores all neighbors level by level. Guaranteed to find the path with fewest hops. Not optimal on weighted graphs.",
+    badges: [["blue","Complete"],["yellow","Unweighted Optimal"]]
+  },
+  dfs: {
+    name: "Depth-First Search",
+    desc: "Dives deep along one branch before backtracking. Very memory-efficient but not optimal — may find longer paths.",
+    badges: [["blue","Complete"],["gray","Not Optimal"]]
+  },
+  ucs: {
+    name: "Uniform Cost Search",
+    desc: "Always expands the least-cost node. Guarantees the cheapest path on weighted graphs. Equivalent to Dijkstra's algorithm.",
+    badges: [["green","Optimal"],["blue","Complete"],["gray","No Heuristic"]]
+  },
+  astar: {
+    name: "A* Search",
+    desc: "Combines actual cost g(n) + heuristic h(n) to guide search. Optimal and faster than UCS by exploring fewer nodes.",
+    badges: [["green","Optimal"],["blue","Complete"],["purple","Heuristic"]]
+  },
+  gbfs: {
+    name: "Greedy Best-First Search",
+    desc: "Uses only the heuristic h(n) — ignores actual path cost. Very fast but not guaranteed to find the optimal path.",
+    badges: [["red","Not Optimal"],["blue","Complete"],["purple","Heuristic"]]
+  },
+  minimax: {
+    name: "Minimax (α-β Pruning)",
+    desc: "Models navigation as a 2-player adversarial game. Patient (MAX) wants shortest path; Adversary (MIN) tries to block. Alpha-Beta pruning skips irrelevant branches for efficiency.",
+    badges: [["yellow","Adversarial"],["purple","Game Tree"],["green","α-β Pruning"]]
+  },
+  bayes: {
+    name: "Naïve Bayes Theorem",
+    desc: "Probabilistic classifier: given observed symptoms, computes P(dept|evidence) ∝ P(dept) × ∏P(symptom|dept). Ranks every department by posterior probability using Laplace smoothing to handle unseen feature combinations.",
+    badges: [["purple","Probabilistic"],["green","Bayesian"],["blue","Laplace Smoothed"]]
+  },
+};
+
+// ════════════════════════════════════════════════════════
+//  SVG HELPERS
+// ════════════════════════════════════════════════════════
+const NS = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs = {}) {
+  const el = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+  return el;
+}
+
+const gEdges     = document.getElementById("g-edges");
+const gPathEdges = document.getElementById("g-path-edges");
+const gNodes     = document.getElementById("g-nodes");
+const wheelchair = document.getElementById("g-wheelchair");
+
+// ════════════════════════════════════════════════════════
+//  RENDER BASE GRAPH
+// ════════════════════════════════════════════════════════
+function renderGraph() {
+  gEdges.innerHTML = "";
+  gNodes.innerHTML = "";
+
+  // Draw edges (undirected — draw once per pair)
+  const drawn = new Set();
+  for (const [from, nbs] of Object.entries(GRAPH)) {
+    for (const [to, w] of Object.entries(nbs)) {
+      const key = [from, to].sort().join("|");
+      if (drawn.has(key)) continue;
+      drawn.add(key);
+
+      const p1 = toSVG(from), p2 = toSVG(to);
+      const line = svgEl("line", {
+        x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
+        class: "edge-base",
+        "data-from": from, "data-to": to,
+        id: `edge-${key}`,
+      });
+      gEdges.appendChild(line);
+
+      // weight label
+      const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2 - 5;
+      const wLabel = svgEl("text", {
+        x: mx, y: my, "text-anchor": "middle",
+        "font-family": "JetBrains Mono", "font-size": "10",
+        fill: "#2a5070", opacity: "0.8",
+      });
+      wLabel.textContent = w;
+      gEdges.appendChild(wLabel);
+    }
+  }
+
+  // Draw nodes
+  for (const [name, pos] of Object.entries(NODE_POS)) {
+    const { x, y } = toSVG(name);
+    const meta = DEPT_META[name] || {};
+    const isElev = name.startsWith("Elevator");
+    const g = svgEl("g", { "data-node": name, id: `node-${name}` });
+    g.style.cursor = "pointer";
+
+    if (isElev) {
+      const rect = svgEl("rect", {
+        x: x - 24, y: y - 15, width: 48, height: 30, rx: 7,
+        fill: "#0a1828", stroke: meta.color || "#2a5a7a", "stroke-width": "1.5",
+        class: "node-base elev-base",
+      });
+      const ico = svgEl("text", {
+        x, y: y + 1, "text-anchor": "middle",
+        "dominant-baseline": "central", "font-size": "13",
+      });
+      ico.textContent = meta.icon || "🛗";
+      const lbl = svgEl("text", {
+        x, y: y + 24, "text-anchor": "middle",
+        "font-family": "JetBrains Mono", "font-size": "8",
+        fill: "#4a7090",
+      });
+      lbl.textContent = name.replace("_", " ");
+      g.append(rect, ico, lbl);
+    } else {
+      // outer glow ring (animated when active)
+      const ring = svgEl("circle", {
+        cx: x, cy: y, r: 32, class: "node-ring",
+        stroke: meta.color || "#00d4ff", id: `ring-${name}`,
+      });
+      const circle = svgEl("circle", {
+        cx: x, cy: y, r: 26,
+        fill: "#0d1e35", stroke: meta.color || "#00d4ff", "stroke-width": "2",
+        class: "node-base", id: `circle-${name}`,
+      });
+      const ico = svgEl("text", {
+        x, y: y + 1, "text-anchor": "middle",
+        "dominant-baseline": "central", "font-size": "17",
+      });
+      ico.textContent = meta.icon || "🏥";
+      const lbl = svgEl("text", {
+        x, y: y + 44, "text-anchor": "middle",
+        "font-family": "Inter, sans-serif", "font-size": "10.5",
+        fill: "#5a8ab4", "font-weight": "500",
+      });
+      lbl.textContent = name;
+      g.append(ring, circle, ico, lbl);
+    }
+
+    // Hover effects
+    g.addEventListener("mouseenter", () => {
+      const c = document.getElementById(`circle-${name}`);
+      if (c) { c.setAttribute("stroke-width", "3"); c.setAttribute("filter", "url(#f-teal)"); }
+    });
+    g.addEventListener("mouseleave", () => {
+      const c = document.getElementById(`circle-${name}`);
+      if (c) { c.removeAttribute("filter"); c.setAttribute("stroke-width", "2"); }
+    });
+    g.addEventListener("click", () => showDeptInfo(name));
+
+    gNodes.appendChild(g);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  DEPARTMENT INFO PANEL
+// ════════════════════════════════════════════════════════
+function showDeptInfo(name) {
+  const m = DEPT_META[name] || {};
+  const conns = Object.entries(GRAPH[name] || {})
+    .map(([nb, w]) => `<span class="conn-tag">${nb} <em>(${w})</em></span>`)
+    .join("");
+  document.getElementById("dept-info-box").innerHTML = `
+    <div class="dept-card">
+      <div class="dept-top">
+        <div class="dept-icon">${m.icon || "🏥"}</div>
+        <div>
+          <div class="dept-name">${name}</div>
+          <div class="dept-floor-tag" style="border-color:${m.color}40;color:${m.color}">${m.floor || "—"}</div>
+        </div>
+      </div>
+      <div class="dept-desc">${m.desc || ""}</div>
+      <div class="dept-connections">
+        <div class="conn-label">Connections:</div>
+        <div class="conn-list">${conns}</div>
+      </div>
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════
+//  ALGORITHM INFO PANEL
+// ════════════════════════════════════════════════════════
+function updateAlgoInfo(algo) {
+  const m = ALGO_META[algo] || {};
+  document.getElementById("algo-info-name").textContent = m.name || algo;
+  document.getElementById("algo-info-text").textContent = m.desc || "";
+  document.getElementById("algo-active-pill").textContent = m.name || algo;
+  const badgeColors = { green:"#00f58530;color:#00f585;border-color:#00f58550", blue:"#38bdf830;color:#38bdf8;border-color:#38bdf850", purple:"#a855f730;color:#a855f7;border-color:#a855f750", yellow:"#fbbf2430;color:#fbbf24;border-color:#fbbf2450", red:"#ef444430;color:#ef4444;border-color:#ef444450", gray:"#33415530;color:#94a3b8;border-color:#33415550" };
+  document.getElementById("algo-badges").innerHTML = (m.badges || []).map(([col, txt]) => {
+    const style = badgeColors[col] || badgeColors.gray;
+    return `<span class="algo-badge" style="background:${style.split(';')[0]};${style.split(';').slice(1).join(';')}">${txt}</span>`;
+  }).join("");
+}
+
+// ════════════════════════════════════════════════════════
+//  ALGO CARD SELECTION
+// ════════════════════════════════════════════════════════
+document.querySelectorAll(".algo-card").forEach(card => {
+  card.addEventListener("click", () => {
+    document.querySelectorAll(".algo-card").forEach(c => c.classList.remove("active"));
+    card.classList.add("active");
+    updateAlgoInfo(card.dataset.algo);
+  });
+});
+updateAlgoInfo("astar");
+
+// ════════════════════════════════════════════════════════
+//  SWAP
+// ════════════════════════════════════════════════════════
+document.getElementById("swap-btn").addEventListener("click", () => {
+  const s = document.getElementById("start-sel");
+  const g = document.getElementById("goal-sel");
+  [s.value, g.value] = [g.value, s.value];
+});
+
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+let currentPath = [], currentTraversal = [], animTimer = null, animRunning = false;
+
+// ════════════════════════════════════════════════════════
+//  FIND ROUTE
+// ════════════════════════════════════════════════════════
+document.getElementById("find-btn").addEventListener("click", async () => {
+  const start = document.getElementById("start-sel").value;
+  const goal  = document.getElementById("goal-sel").value;
+  const algo  = document.querySelector("input[name='algo']:checked").value;
+
+  if (!start || !goal) { toast("Please select both start and destination.", "warn"); return; }
+  if (start === goal)  { toast("Start and destination must be different.", "warn"); return; }
+
+  stopAnim();
+  resetMapVisuals();
+
+  const btn = document.getElementById("find-btn");
+  btn.classList.add("loading"); btn.disabled = true;
+
+  try {
+    const res  = await fetch("/navigate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start, goal, algorithm: algo }),
+    });
+    const data = await res.json();
+
+    if (data.error) { toast(data.error, "error"); return; }
+
+    currentPath      = data.path;
+    currentTraversal = data.traversal;
+
+    // Populate stats
+    document.getElementById("res-algo").textContent    = data.algorithm;
+    document.getElementById("res-cost").textContent    = data.cost;
+    document.getElementById("res-steps").textContent   = data.steps;
+    document.getElementById("res-visited").textContent = data.traversal.length;
+    document.getElementById("results-sec").style.display = "block";
+
+    // Minimax badge
+    const mmEl = document.getElementById("mm-extra");
+    if (algo === "minimax" && data.minimax_score !== undefined) {
+      document.getElementById("mm-score").textContent = data.minimax_score;
+      mmEl.style.display = "block";
+    } else {
+      mmEl.style.display = "none";
+    }
+
+    // Path breadcrumb
+    buildCrumb(data.path);
+
+    // Traversal log
+    buildLog(data.traversal, data.path);
+    document.getElementById("log-sec").style.display = "block";
+
+    // Animate traversal on map, then draw path
+    await animateTraversal(data.traversal, data.path, start, goal);
+
+    // Enable animate button
+    const ab = document.getElementById("anim-btn");
+    ab.disabled = false;
+
+    // Step bar
+    const sb = document.getElementById("step-bar");
+    sb.style.display = "flex";
+    document.getElementById("step-tot").textContent = data.path.length - 1;
+    document.getElementById("step-num").textContent = "0";
+    document.getElementById("step-tag").textContent = start;
+    document.getElementById("step-progress").style.width = "0%";
+
+    toast(`Route found! ${data.steps} step(s) · Cost ${data.cost}`, "success");
+
+  } catch (e) {
+    toast("Navigation error. Please try again.", "error");
+  } finally {
+    btn.classList.remove("loading"); btn.disabled = false;
+  }
+});
+
+// ════════════════════════════════════════════════════════
+//  BUILD PATH CRUMB
+// ════════════════════════════════════════════════════════
+function buildCrumb(path) {
+  document.getElementById("path-crumb").innerHTML = path.map((n, i) => {
+    const cls = i === 0 ? "crumb-start" : i === path.length - 1 ? "crumb-end" : "crumb-mid";
+    return `<span class="crumb-node ${cls}">${n}</span>${i < path.length - 1 ? '<span class="crumb-arrow">›</span>' : ""}`;
+  }).join("");
+}
+
+// ════════════════════════════════════════════════════════
+//  BUILD TRAVERSAL LOG
+// ════════════════════════════════════════════════════════
+function buildLog(traversal, path) {
+  const ps = new Set(path);
+  document.getElementById("tlog").innerHTML = traversal.map((n, i) => `
+    <div class="tlog-entry ${ps.has(n) ? "tlog-path" : ""}" id="tlog-entry-${i}">
+      <span class="tlog-idx">${String(i + 1).padStart(2, "0")}</span>
+      <span class="tlog-name">${n}</span>
+      <span class="tlog-badge ${ps.has(n) ? "badge-path" : "badge-vis"}">${ps.has(n) ? "PATH" : "VISITED"}</span>
+    </div>`).join("");
+}
+
+// ════════════════════════════════════════════════════════
+//  ANIMATE TRAVERSAL  (nodes light up one by one)
+// ════════════════════════════════════════════════════════
+function animateTraversal(traversal, path, start, goal) {
+  return new Promise(resolve => {
+    const pathSet = new Set(path);
+    let i = 0;
+
+    function step() {
+      if (i >= traversal.length) {
+        // After traversal done, draw the path edges
+        setTimeout(() => { drawPathEdges(path); resolve(); }, 200);
+        return;
+      }
+      const node = traversal[i];
+      // Colour node
+      colorNode(node, node === start ? "start" : node === goal ? "goal" : pathSet.has(node) ? "path" : "visited");
+      // Highlight log entry
+      highlightLogEntry(i);
+      i++;
+      setTimeout(step, 110);
+    }
+    step();
+  });
+}
+
+function colorNode(name, type) {
+  const c = document.getElementById(`circle-${name}`);
+  const r = document.getElementById(`ring-${name}`);
+  if (!c) return;
+  const styles = {
+    start:   { fill: "#003a50", filter: "url(#f-teal)",   stroke: "#00d4ff", sw: "3" },
+    goal:    { fill: "#00351a", filter: "url(#f-green)",  stroke: "#00f585", sw: "3" },
+    path:    { fill: "#1a1040", filter: "url(#f-purple)", stroke: "#a855f7", sw: "2.5" },
+    visited: { fill: "#1a2535", filter: "",               stroke: null,      sw: "2" },
+  };
+  const s = styles[type] || styles.visited;
+  c.setAttribute("fill", s.fill);
+  c.setAttribute("stroke-width", s.sw);
+  if (s.filter) c.setAttribute("filter", s.filter); else c.removeAttribute("filter");
+  if (s.stroke && r) { r.setAttribute("stroke", s.stroke); r.setAttribute("opacity", "0.3"); }
+}
+
+function highlightLogEntry(idx) {
+  document.querySelectorAll(".tlog-entry.tlog-current").forEach(e => e.classList.remove("tlog-current"));
+  const el = document.getElementById(`tlog-entry-${idx}`);
+  if (el) { el.classList.add("tlog-current"); el.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+}
+
+// ════════════════════════════════════════════════════════
+//  DRAW PATH EDGES  (animated dashed glow lines)
+// ════════════════════════════════════════════════════════
+function drawPathEdges(path) {
+  gPathEdges.innerHTML = "";
+  for (let i = 0; i < path.length - 1; i++) {
+    const p1 = toSVG(path[i]), p2 = toSVG(path[i + 1]);
+    const line = svgEl("line", {
+      x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
+      class: "edge-path",
+      "stroke-dasharray": "12 8",
+      "stroke-dashoffset": "0",
+    });
+    gPathEdges.appendChild(line);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  WHEELCHAIR ANIMATION  (moves along path smoothly)
+// ════════════════════════════════════════════════════════
+document.getElementById("anim-btn").addEventListener("click", () => {
+  if (animRunning) { stopAnim(); return; }
+  if (!currentPath.length) return;
+  startWheelchairAnim();
+});
+
+function startWheelchairAnim() {
+  stopAnim();
+  animRunning = true;
+  const btn = document.getElementById("anim-btn");
+  btn.textContent = "⏹ Stop"; btn.classList.add("active");
+
+  wheelchair.style.display = "block";
+  const pos0 = toSVG(currentPath[0]);
+  wheelchair.setAttribute("transform", `translate(${pos0.x},${pos0.y})`);
+
+  let step = 0;
+  const total = currentPath.length - 1;
+
+  function move() {
+    if (step > total) {
+      setTimeout(() => {
+        wheelchair.style.display = "none";
+        btn.textContent = "▶ Animate"; btn.classList.remove("active");
+        animRunning = false;
+      }, 500);
+      return;
+    }
+
+    const node = currentPath[step];
+    const pos  = toSVG(node);
+
+    // smooth CSS transition
+    wheelchair.style.transition = step === 0 ? "none" : "transform 600ms cubic-bezier(0.4,0,0.2,1)";
+    wheelchair.setAttribute("transform", `translate(${pos.x},${pos.y})`);
+
+    // Update step bar
+    document.getElementById("step-num").textContent = step;
+    document.getElementById("step-tag").textContent = node;
+    document.getElementById("step-progress").style.width = `${(step / total) * 100}%`;
+
+    // Sync traversal log to path node
+    const tIdx = currentTraversal.indexOf(node);
+    if (tIdx >= 0) highlightLogEntry(tIdx);
+
+    // Re-color to show wheelchair is here
+    if (step > 0 && step < total) colorNode(node, "path");
+
+    step++;
+    animTimer = setTimeout(move, step === 1 ? 100 : 680);
+  }
+  move();
+}
+
+function stopAnim() {
+  if (animTimer) clearTimeout(animTimer);
+  animTimer = null; animRunning = false;
+  wheelchair.style.display = "none";
+  const btn = document.getElementById("anim-btn");
+  if (btn) { btn.textContent = "▶ Animate"; btn.classList.remove("active"); }
+}
+
+// ════════════════════════════════════════════════════════
+//  RESET
+// ════════════════════════════════════════════════════════
+document.getElementById("reset-btn").addEventListener("click", () => {
+  stopAnim();
+  resetMapVisuals();
+  currentPath = []; currentTraversal = [];
+  document.getElementById("start-sel").value = "";
+  document.getElementById("goal-sel").value  = "";
+  document.getElementById("results-sec").style.display = "none";
+  document.getElementById("log-sec").style.display     = "none";
+  document.getElementById("csp-sec").style.display     = "none";
+  document.getElementById("anim-btn").disabled = true;
+  document.getElementById("anim-btn").textContent = "▶ Animate";
+  document.getElementById("step-bar").style.display = "none";
+  document.getElementById("dept-info-box").innerHTML = `<div class="empty-state"><div class="empty-icon">🏥</div><p>Click any department node<br/>on the map to view details</p></div>`;
+  toast("Map reset.", "");
+});
+
+function resetMapVisuals() {
+  gPathEdges.innerHTML = "";
+  // reset all node colours
+  for (const name of Object.keys(NODE_POS)) {
+    const c = document.getElementById(`circle-${name}`);
+    const r = document.getElementById(`ring-${name}`);
+    if (c) { c.setAttribute("fill","#0d1e35"); c.setAttribute("stroke-width","2"); c.removeAttribute("filter"); }
+    if (r) { r.setAttribute("opacity","0.25"); }
+  }
+  // remove tlog current
+  document.querySelectorAll(".tlog-current").forEach(e => e.classList.remove("tlog-current"));
+}
+
+// ════════════════════════════════════════════════════════
+//  CSP SCHEDULE
+// ════════════════════════════════════════════════════════
+document.getElementById("csp-btn").addEventListener("click", async () => {
+  const btn = document.getElementById("csp-btn");
+  btn.disabled = true; btn.style.opacity = "0.6";
+  try {
+    const res  = await fetch("/csp_schedule");
+    const data = await res.json();
+    if (data.error) { toast(data.error, "error"); return; }
+    renderCSP(data);
+    document.getElementById("csp-sec").style.display = "block";
+    toast("CSP schedule solved!", "success");
+  } catch (e) {
+    toast("CSP error.", "error");
+  } finally {
+    btn.disabled = false; btn.style.opacity = "1";
+  }
+});
+
+function renderCSP(data) {
+  const slotColors = ["#00d4ff","#00f585","#fbbf24","#a855f7"];
+  const constraints = data.constraints || [];
+  let html = `<div class="csp-constraints">
+    <div class="csp-c-title">Active Constraints</div>
+    ${constraints.map(c => `<div class="csp-constraint">⊛ ${c}</div>`).join("")}
+  </div>`;
+  for (const [slot, depts] of Object.entries(data.schedule)) {
+    if (!depts.length) continue;
+    const col = slotColors[parseInt(slot) - 1] || "#aaa";
+    const label = data.slot_labels?.[slot] || "";
+    html += `<div class="csp-slot" style="border-color:${col}30">
+      <div class="csp-slot-hdr" style="color:${col}">
+        BATCH ${slot} <span class="csp-slot-time">${label}</span>
+      </div>
+      <div class="csp-slot-depts">
+        ${depts.map(d => `<span class="csp-dept-tag" style="background:${col}18;border-color:${col}40;color:${col}">${DEPT_META[d]?.icon||""} ${d}</span>`).join("")}
+      </div>
+    </div>`;
+  }
+  document.getElementById("csp-output").innerHTML = html;
+}
+
+// ════════════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════════════
+function toast(msg, type = "") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+// ════════════════════════════════════════════════════════
+//  CLOCK
+// ════════════════════════════════════════════════════════
+function tick() {
+  document.getElementById("clock-pill").textContent =
+    new Date().toLocaleTimeString("en-US", { hour12: false });
+}
+setInterval(tick, 1000); tick();
+
+// ════════════════════════════════════════════════════════
+//  BAYES PREDICTOR
+// ════════════════════════════════════════════════════════
+document.getElementById("bayes-btn").addEventListener("click", async () => {
+  const checks = document.querySelectorAll(".bayes-check:checked");
+  const features = {};
+  document.querySelectorAll(".bayes-check").forEach(cb => {
+    features[cb.value] = cb.checked;
+  });
+
+  if (checks.length === 0) { toast("Select at least one symptom.", "warn"); return; }
+
+  const btn = document.getElementById("bayes-btn");
+  btn.disabled = true; btn.style.opacity = "0.6";
+
+  try {
+    const res  = await fetch("/bayes_predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ features }),
+    });
+    const data = await res.json();
+    if (data.error) { toast(data.error, "error"); return; }
+    renderBayesResult(data);
+    document.getElementById("bayes-result").style.display = "block";
+    toast("Bayes prediction complete!", "success");
+  } catch(e) {
+    toast("Prediction error.", "error");
+  } finally {
+    btn.disabled = false; btn.style.opacity = "1";
+  }
+});
+
+function renderBayesResult(data) {
+  const riskColors = { CRITICAL:"#ef4444", HIGH:"#f97316", MODERATE:"#fbbf24", LOW:"#34d399", INFO:"#38bdf8" };
+  const u   = data.uncertainty;
+  const top = data.predictions[0];
+
+  // Determine display color based on certainty
+  const topColor = data.is_certain
+    ? (riskColors[top.risk_level] || "#a855f7")
+    : "#f97316";
+
+  // Uncertainty badges
+  const confPct    = Math.round(u.entropy_confidence * 100);
+  const confColor  = confPct >= 70 ? "#34d399" : confPct >= 45 ? "#fbbf24" : "#ef4444";
+  const marginPct  = Math.round(u.margin * 100);
+  const marginColor = marginPct >= 10 ? "#34d399" : "#ef4444";
+
+  const uncertaintyBlock = `
+    <div class="bayes-uncertainty">
+      <div class="bu-title">Uncertainty Analysis</div>
+      <div class="bu-row">
+        <span class="bu-label">Entropy Confidence</span>
+        <div class="bu-bar-wrap">
+          <div class="bu-bar" style="width:${confPct}%;background:${confColor}"></div>
+        </div>
+        <span class="bu-val" style="color:${confColor}">${confPct}%</span>
+      </div>
+      <div class="bu-row">
+        <span class="bu-label">Top-1 vs Top-2 Gap</span>
+        <div class="bu-bar-wrap">
+          <div class="bu-bar" style="width:${Math.min(marginPct*5,100)}%;background:${marginColor}"></div>
+        </div>
+        <span class="bu-val" style="color:${marginColor}">${marginPct}%</span>
+      </div>
+      ${u.low_confidence ? `<div class="bu-alert red">⚠ Low confidence (${Math.round(u.top1_prob*100)}% &lt; ${Math.round(u.threshold_used*100)}% threshold) — redirecting to Reception</div>` : ""}
+      ${u.low_margin && !u.low_confidence ? `<div class="bu-alert amber">⚠ Uncertain — gap between ${data.predictions[0].dept} and ${data.predictions[1].dept} is only ${marginPct}% (threshold ${Math.round(u.margin_threshold*100)}%)</div>` : ""}
+    </div>`;
+
+  const barItems = data.predictions.map(p => {
+    const col = riskColors[p.risk_level] || "#64748b";
+    const pct = Math.round(p.probability * 100);
+    return `<div class="bayes-bar-row">
+      <div class="bayes-bar-label">${p.dept}</div>
+      <div class="bayes-bar-track">
+        <div class="bayes-bar-fill" style="width:${pct}%;background:${col}"></div>
+      </div>
+      <div class="bayes-bar-pct" style="color:${col}">${(p.probability*100).toFixed(1)}%</div>
+      <div class="bayes-risk-tag" style="border-color:${col}40;color:${col}">${p.risk_level}</div>
+    </div>`;
+  }).join("");
+
+  const activeFeats = data.active_features.map(f =>
+    `<span class="bayes-feat-tag">${(data.feature_labels[f]||f)}</span>`
+  ).join("");
+
+  document.getElementById("bayes-result").innerHTML = `
+    <div class="bayes-top-result" style="border-color:${topColor}40">
+      <div class="bayes-top-label">${data.is_certain ? "Predicted Department" : "⚠ Uncertain — Suggested Department"}</div>
+      <div class="bayes-top-dept" style="color:${topColor}">${data.top_dept}</div>
+      <div class="bayes-top-prob">${(top.probability*100).toFixed(1)}% probability · Score: ${top.log_score}</div>
+      <div class="bayes-top-rec">${data.final_reason}</div>
+    </div>
+    ${uncertaintyBlock}
+    <div class="bayes-active-feats">${activeFeats}</div>
+    <div class="bayes-formula">${data.formula_note}</div>
+    <div class="bayes-bars">${barItems}</div>
+  `;
+
+  // Auto-fill goal only if prediction is certain
+  const goalSel = document.getElementById("goal-sel");
+  const dest = data.top_dept;
+  if (data.is_certain && [...goalSel.options].some(o => o.value === dest)) {
+    goalSel.value = dest;
+    toast(`Goal set to ${dest} — now pick start & algorithm!`, "success");
+  } else if (!data.is_certain) {
+    toast("Prediction uncertain — review both candidates before navigating.", "warn");
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════
+renderGraph();
+</script>
+</body>
+</html>

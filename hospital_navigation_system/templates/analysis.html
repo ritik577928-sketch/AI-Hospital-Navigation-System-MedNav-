@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MedNav — Algorithm Analysis Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ══════════════ TOKENS ══════════════ */
+:root {
+  --bg:      #07090f;
+  --panel:   #0b0e1a;
+  --card:    #0f1422;
+  --card2:   #131929;
+  --border:  #1c2535;
+  --border2: #243040;
+  --text:    #c8daf0;
+  --muted:   #46607a;
+  --dim:     #1a2a3a;
+  --teal:    #00d4ff;
+  --green:   #00f585;
+  --amber:   #fbbf24;
+  --purple:  #a855f7;
+  --red:     #ef4444;
+  --blue:    #38bdf8;
+  --orange:  #fb923c;
+  --cyan:    #22d3ee;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Inter', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: var(--sans); font-size: 13px; line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ══════════════ HEADER ══════════════ */
+.hdr {
+  position: sticky; top: 0; z-index: 100;
+  background: #07090fee; backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px; height: 54px;
+}
+.hdr::after {
+  content:''; position:absolute; bottom:0; left:0; right:0; height:1px;
+  background: linear-gradient(90deg,transparent,#00d4ff60,transparent);
+}
+.hdr-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.hdr-icon {
+  width:34px; height:34px; border:1.5px solid var(--teal); border-radius:9px;
+  display:flex; align-items:center; justify-content:center; font-size:18px;
+  background:#001c2e; box-shadow:0 0 14px #00d4ff25;
+}
+.hdr-title { font-size:16px; font-weight:700; color:#fff; }
+.hdr-sub   { font-family:var(--mono); font-size:9px; color:var(--teal); letter-spacing:.2em; display:block; }
+.hdr-nav { display:flex; align-items:center; gap:8px; }
+.hdr-pill {
+  background:var(--card); border:1px solid var(--border2); border-radius:20px;
+  padding:4px 14px; font-family:var(--mono); font-size:10px; color:var(--muted);
+  text-decoration:none; transition:all .18s; cursor:pointer;
+}
+.hdr-pill:hover { border-color:var(--teal); color:var(--teal); }
+.hdr-pill.active { border-color:var(--teal); color:var(--teal); background:#00d4ff0a; }
+
+/* Floating TOC pills */
+.toc-float {
+  position: fixed; right: 20px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 6px; z-index: 99;
+}
+.toc-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border2); border: 1px solid var(--border2);
+  cursor: pointer; transition: all .2s; title: '';
+}
+.toc-dot:hover, .toc-dot.active { background: var(--teal); box-shadow: 0 0 8px var(--teal); }
+
+/* ══════════════ HERO ══════════════ */
+.hero {
+  text-align: center; padding: 72px 24px 56px;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, #00d4ff08, transparent);
+  border-bottom: 1px solid var(--border);
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--card); border: 1px solid var(--teal);
+  border-radius: 20px; padding: 4px 14px;
+  font-family: var(--mono); font-size: 10px; color: var(--teal);
+  letter-spacing: .12em; margin-bottom: 20px;
+}
+.hero h1 {
+  font-size: clamp(28px, 4vw, 42px); font-weight: 700; color: #fff;
+  line-height: 1.2; margin-bottom: 12px; letter-spacing: -.01em;
+}
+.hero h1 span { color: var(--teal); }
+.hero p { font-size: 15px; color: var(--muted); max-width: 560px; margin: 0 auto 28px; }
+.hero-meta { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+.hero-stat { text-align: center; }
+.hero-stat-val { display: block; font-size: 26px; font-weight: 700; color: var(--teal); font-family: var(--mono); }
+.hero-stat-lbl { font-size: 10px; color: var(--muted); letter-spacing: .1em; }
+
+/* ══════════════ SECTIONS ══════════════ */
+.section {
+  max-width: 1100px; margin: 0 auto; padding: 64px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.section:last-child { border-bottom: none; }
+.section-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 3px 12px;
+  font-family: var(--mono); font-size: 9px; color: var(--muted);
+  letter-spacing: .14em; margin-bottom: 12px;
+}
+.section-title {
+  font-size: 26px; font-weight: 700; color: #fff; margin-bottom: 6px;
+}
+.section-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 32px; max-width: 600px; }
+
+/* ══════════════ GRAPH MAP ══════════════ */
+.map-container {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; overflow: hidden;
+}
+.map-floor-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+}
+.floor-tab {
+  flex: 1; padding: 12px; text-align: center;
+  font-family: var(--mono); font-size: 10px; letter-spacing: .14em;
+  color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all .18s; background: none; border-right: 1px solid var(--border);
+}
+.floor-tab:last-child { border-right: none; }
+.floor-tab.active { color: var(--teal); border-bottom-color: var(--teal); background: #00d4ff06; }
+#analysis-map { width: 100%; display: block; }
+
+/* ══════════════ ADJACENCY LIST ══════════════ */
+.adj-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.adj-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+}
+.adj-card-hdr {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  background: var(--card2);
+}
+.adj-icon { font-size: 18px; }
+.adj-node-name { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
+.adj-floor-badge {
+  font-family: var(--mono); font-size: 8px;
+  padding: 2px 8px; border-radius: 20px; border: 1px solid;
+}
+.adj-edges { padding: 10px 14px; display: flex; flex-direction: column; gap: 5px; }
+.adj-edge {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 0; border-bottom: 1px solid #ffffff06;
+}
+.adj-edge:last-child { border-bottom: none; }
+.adj-edge-name { font-size: 11px; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.adj-edge-arrow { color: var(--muted); font-size: 10px; }
+.adj-edge-w {
+  font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--teal);
+  background: #00d4ff10; border: 1px solid #00d4ff20;
+  border-radius: 20px; padding: 2px 8px;
+}
+
+/* ══════════════ HEURISTIC TABLE ══════════════ */
+.h-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+.h-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px; position: relative; overflow: hidden;
+}
+.h-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--teal); opacity: .5;
+}
+.h-node { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.h-icon { font-size: 20px; margin-bottom: 8px; }
+.h-val {
+  font-family: var(--mono); font-size: 24px; font-weight: 700;
+  color: var(--teal); line-height: 1;
+}
+.h-label { font-size: 9px; color: var(--muted); letter-spacing: .1em; margin-top: 3px; }
+.h-bar-wrap {
+  height: 4px; background: var(--dim); border-radius: 2px;
+  margin-top: 8px; overflow: hidden;
+}
+.h-bar { height: 100%; border-radius: 2px; background: var(--teal); transition: width .8s ease; }
+
+/* ══════════════ ALGORITHM COMPARISON ══════════════ */
+.pair-select-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.pair-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .1em; }
+.pair-btn {
+  background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+  padding: 5px 14px; font-size: 11px; font-family: var(--mono);
+  color: var(--muted); cursor: pointer; transition: all .18s; white-space: nowrap;
+}
+.pair-btn:hover  { border-color: var(--teal); color: var(--teal); }
+.pair-btn.active { border-color: var(--teal); color: var(--teal); background: #00d4ff0a; }
+
+.cmp-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; }
+@media(max-width:900px) { .cmp-grid { grid-template-columns: repeat(3,1fr); } }
+@media(max-width:600px) { .cmp-grid { grid-template-columns: 1fr 1fr; } }
+
+.cmp-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; position: relative;
+  transition: transform .18s, box-shadow .18s;
+}
+.cmp-card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px #00000050; }
+.cmp-card.best-cost { border-color: #00f58560; }
+.cmp-card.best-cost::after {
+  content: '★ OPTIMAL';
+  position: absolute; top: 8px; right: 8px;
+  font-family: var(--mono); font-size: 7px;
+  background: #00f58520; color: var(--green);
+  border: 1px solid #00f58540; border-radius: 20px; padding: 1px 6px;
+}
+.cmp-card.best-visited { border-color: #fbbf2460; }
+.cmp-hdr {
+  padding: 10px 12px; text-align: center;
+  border-bottom: 1px solid var(--border); background: var(--card2);
+}
+.cmp-abbr { font-family: var(--mono); font-size: 20px; font-weight: 700; line-height: 1; }
+.cmp-name { font-size: 9px; color: var(--muted); margin-top: 2px; }
+.cmp-body { padding: 12px; }
+.cmp-metric { margin-bottom: 10px; }
+.cmp-metric-label { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: .1em; }
+.cmp-metric-val {
+  font-size: 20px; font-weight: 700; line-height: 1.2;
+  margin-top: 2px; font-family: var(--mono);
+}
+.cmp-bar-wrap { height: 3px; background: var(--dim); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.cmp-bar { height: 100%; border-radius: 2px; transition: width .7s ease; }
+.cmp-path {
+  font-family: var(--mono); font-size: 9px; color: var(--muted);
+  margin-top: 10px; line-height: 1.6; border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.cmp-path-node { color: var(--text); }
+.cmp-path-arrow { color: var(--muted); }
+
+/* ══════════════ EXPECTED PATH TABLE ══════════════ */
+.path-table-wrap { overflow-x: auto; }
+.path-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12px;
+}
+.path-table th {
+  background: var(--card2); border: 1px solid var(--border);
+  padding: 10px 14px; text-align: left;
+  font-family: var(--mono); font-size: 9px; color: var(--muted);
+  letter-spacing: .12em; white-space: nowrap;
+}
+.path-table td {
+  border: 1px solid var(--border); padding: 10px 14px;
+  vertical-align: top;
+}
+.path-table tr:nth-child(even) td { background: var(--card); }
+.path-table tr:nth-child(odd)  td { background: var(--card2); }
+.path-table tr:hover td { background: #00d4ff06; }
+.td-pair { font-weight: 600; color: #fff; white-space: nowrap; }
+.td-algo { font-family: var(--mono); font-size: 10px; }
+.td-cost { font-family: var(--mono); color: var(--teal); font-weight: 600; font-size: 13px; }
+.td-visited { font-family: var(--mono); color: var(--amber); }
+.td-path { font-family: var(--mono); font-size: 9px; color: var(--muted); }
+.td-path .pn { color: var(--text); }
+.td-opt { font-size: 10px; }
+.badge-y { color: var(--green); }
+.badge-n { color: var(--red); }
+.badge-p { color: var(--purple); }
+
+/* ══════════════ ALGO PROPERTIES TABLE ══════════════ */
+.prop-table { width:100%; border-collapse:collapse; font-size:12px; }
+.prop-table th {
+  background:var(--card2); border:1px solid var(--border);
+  padding:10px 14px; font-family:var(--mono); font-size:9px;
+  color:var(--muted); letter-spacing:.12em; white-space:nowrap;
+}
+.prop-table td { border:1px solid var(--border); padding:10px 14px; }
+.prop-table tr:nth-child(even) td { background:var(--card); }
+.prop-table tr:nth-child(odd)  td { background:var(--card2); }
+.prop-algo-name { font-weight:600; color:#fff; }
+.prop-badge {
+  display:inline-block; font-family:var(--mono); font-size:9px;
+  padding:2px 8px; border-radius:20px; border:1px solid;
+}
+.pb-g  { background:#00f58518;color:var(--green); border-color:#00f58540; }
+.pb-r  { background:#ef444418;color:var(--red);   border-color:#ef444440; }
+.pb-y  { background:#fbbf2418;color:var(--amber); border-color:#fbbf2440; }
+.pb-p  { background:#a855f718;color:var(--purple);border-color:#a855f740; }
+.pb-b  { background:#38bdf818;color:var(--blue);  border-color:#38bdf840; }
+.pb-c  { background:#22d3ee18;color:var(--cyan);  border-color:#22d3ee40; }
+
+/* ══════════════ SCROLLBAR ══════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ══════════════ MISC ══════════════ */
+.divider { height: 1px; background: var(--border); margin: 32px 0; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media(max-width:700px) { .row2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header class="hdr">
+  <a class="hdr-logo" href="/">
+    <div class="hdr-icon">✚</div>
+    <div>
+      <span class="hdr-title">MedNav</span>
+      <span class="hdr-sub">ANALYSIS REPORT</span>
+    </div>
+  </a>
+  <nav class="hdr-nav">
+    <a class="hdr-pill" href="#section-map">Graph Map</a>
+    <a class="hdr-pill" href="#section-adj">Adjacency List</a>
+    <a class="hdr-pill" href="#section-heuristic">Heuristics</a>
+    <a class="hdr-pill" href="#section-compare">Comparison</a>
+    <a class="hdr-pill" href="#section-paths">Expected Paths</a>
+    <a class="hdr-pill active" href="/">← Back to Navigator</a>
+  </nav>
+</header>
+
+<!-- Floating TOC -->
+<div class="toc-float">
+  <div class="toc-dot active" onclick="scrollTo('#section-map')"     title="Graph Map"></div>
+  <div class="toc-dot"        onclick="scrollTo('#section-adj')"     title="Adjacency List"></div>
+  <div class="toc-dot"        onclick="scrollTo('#section-heuristic')" title="Heuristics"></div>
+  <div class="toc-dot"        onclick="scrollTo('#section-compare')" title="Comparison"></div>
+  <div class="toc-dot"        onclick="scrollTo('#section-paths')"   title="Paths"></div>
+</div>
+
+<!-- ══════════════ HERO ══════════════ -->
+<div class="hero">
+  <div class="hero-badge">📊 AI ALGORITHM ANALYSIS REPORT</div>
+  <h1>Hospital Navigation<br/><span>Graph Analysis</span></h1>
+  <p>Complete analysis of the hospital graph structure, heuristic values, algorithm comparison across all route pairs, and expected optimal paths.</p>
+  <div class="hero-meta">
+    <div class="hero-stat">
+      <span class="hero-stat-val">11</span>
+      <span class="hero-stat-lbl">TOTAL NODES</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-val">29</span>
+      <span class="hero-stat-lbl">DIRECTED EDGES</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-val">6</span>
+      <span class="hero-stat-lbl">ALGORITHMS</span>
+    </div>
+    <div class="hero-stat">
+      <span class="hero-stat-val">2</span>
+      <span class="hero-stat-lbl">FLOORS</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════ SECTION 1: GRAPH MAP ══════════════ -->
+<section class="section" id="section-map">
+  <div class="section-badge">01 — VISUAL MAP</div>
+  <div class="section-title">Hospital Floor Plan — Graph</div>
+  <div class="section-subtitle">Interactive map of the hospital showing all departments, elevators, and weighted connections between them.</div>
+
+  <div class="map-container">
+    <div class="map-floor-tabs">
+      <button class="floor-tab active" onclick="showFloor(1,this)">🏥 Floor 1 — Ground</button>
+      <button class="floor-tab" onclick="showFloor(2,this)">🏢 Floor 2 — Upper</button>
+      <button class="floor-tab" onclick="showFloor(0,this)">🗺 Combined View</button>
+    </div>
+    <svg id="analysis-map" viewBox="0 0 1060 560" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="glow-t"><feGaussianBlur stdDeviation="5"/></filter>
+        <marker id="marr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#1e3a5a" opacity="0.6"/>
+        </marker>
+      </defs>
+      <!-- Floor 1 bg -->
+      <rect x="10" y="10" width="590" height="540" rx="12" fill="#080f1e" stroke="#1a3550" stroke-width="1.5" id="f1-bg"/>
+      <text x="28" y="34" font-family="JetBrains Mono" font-size="10" fill="#1a4060" id="f1-label">FLOOR 1 — GROUND</text>
+      <!-- Floor 2 bg -->
+      <rect x="615" y="10" width="435" height="540" rx="12" fill="#0e0820" stroke="#2d1555" stroke-width="1.5" id="f2-bg"/>
+      <text x="633" y="34" font-family="JetBrains Mono" font-size="10" fill="#3d1a70" id="f2-label">FLOOR 2 — UPPER</text>
+      <!-- bridge -->
+      <line x1="600" y1="280" x2="615" y2="280" stroke="#2a5a6a" stroke-width="1" stroke-dasharray="3 3" id="bridge"/>
+      <g id="map-edges-g"></g>
+      <g id="map-nodes-g"></g>
+    </svg>
+  </div>
+</section>
+
+
+<!-- ══════════════ SECTION 2: ADJACENCY LIST ══════════════ -->
+<section class="section" id="section-adj">
+  <div class="section-badge">02 — GRAPH STRUCTURE</div>
+  <div class="section-title">Adjacency List Representation</div>
+  <div class="section-subtitle">Each node lists its direct connections with edge weights. The graph is bidirectional — all edges work in both directions.</div>
+
+  <div class="adj-grid" id="adj-grid"></div>
+</section>
+
+
+<!-- ══════════════ SECTION 3: HEURISTIC VALUES ══════════════ -->
+<section class="section" id="section-heuristic">
+  <div class="section-badge">03 — HEURISTIC FUNCTION</div>
+  <div class="section-title">Heuristic Values h(n)</div>
+  <div class="section-subtitle">Static heuristic estimates used by A* and GBFS. h(n) represents the estimated distance from node n to a critical care destination. Lower value = closer to priority care.</div>
+
+  <div class="h-grid" id="h-grid"></div>
+
+  <div class="divider"></div>
+
+  <div class="row2">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;margin-bottom:10px">HEURISTIC FUNCTION DEFINITION</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.8">
+        <span style="color:var(--teal);font-family:var(--mono)">h(n)</span> = estimated cost from node <span style="color:var(--teal);font-family:var(--mono)">n</span> to goal<br/>
+        Used by <strong>A*</strong>: <span style="color:var(--purple);font-family:var(--mono)">f(n) = g(n) + h(n)</span><br/>
+        Used by <strong>GBFS</strong>: <span style="color:var(--cyan);font-family:var(--mono)">f(n) = h(n)</span> only<br/><br/>
+        <span style="color:var(--muted);font-size:11px">Our heuristic is <em>admissible</em> — it never overestimates the true cost, guaranteeing A* finds the optimal path.</span>
+      </div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;margin-bottom:10px">HEURISTIC ORDERING</div>
+      <div id="h-rank-list" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════ SECTION 4: ALGORITHM COMPARISON ══════════════ -->
+<section class="section" id="section-compare">
+  <div class="section-badge">04 — ALGORITHM COMPARISON</div>
+  <div class="section-title">Algorithm Performance Comparison</div>
+  <div class="section-subtitle">Select a route pair to compare all 5 search algorithms side-by-side. Compare path cost, nodes visited, and route chosen.</div>
+
+  <div class="pair-select-row">
+    <span class="pair-label">SELECT PAIR:</span>
+    <div id="pair-btns"></div>
+  </div>
+
+  <div class="cmp-grid" id="cmp-grid"></div>
+
+  <div class="divider"></div>
+
+  <!-- Algo properties table -->
+  <div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.14em;margin-bottom:12px">ALGORITHM PROPERTIES REFERENCE</div>
+  <div style="overflow-x:auto">
+  <table class="prop-table">
+    <thead>
+      <tr>
+        <th>Algorithm</th><th>Strategy</th><th>Complete?</th>
+        <th>Optimal?</th><th>Time Complexity</th><th>Space Complexity</th><th>Heuristic</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="prop-algo-name" style="color:#38bdf8">BFS</span></td>
+        <td>Level-by-level FIFO queue</td>
+        <td><span class="prop-badge pb-g">✓ Yes</span></td>
+        <td><span class="prop-badge pb-y">Unweighted</span></td>
+        <td><code style="font-family:var(--mono);font-size:10px;color:var(--muted)">O(b^d)</code></td>
+        <td><code style="font-family:var(--mono);font-size:10px;color:var(--muted)">O(b^d)</code></td>
+        <td><span class="prop-badge pb-r">✗ None</span></td>
+      </tr>
+      <tr>
+        <td><span class="prop-algo-name" style="color:#fb923c">DFS</span></td>
+        <td>Deep branch LIFO stack</td>
+        <td><span class="prop-badge pb-g">✓ Yes</span></td>
+        <td><span class="prop-badge pb-r">✗ No</span></td>
+        <td><code style="font-family:var(--mono);font-size:10px;color:var(--muted)">O(b^m)</code></td>
+        <td><code style="font-family:var(--mono);font-size:10px;color:var(--muted)">O(bm)</code></td>
+        <td><span class="prop-badge pb-r">✗ None</span></td>
+      </tr>
+      <tr>
+        <td><span class="prop-algo-name" style="color:#34d399">UCS</span></td>
+        <td>Min-cost priority queue</td>
+        <td><span class="prop-badge pb-g">✓ Yes</span></td>
+        <td><span class="prop-badge pb-g">✓ Yes</span></td>
+        <td><code style="font-family:var(--mono);font-size:10px;color:var(--muted)">O(b^(1+C/ε))</code></td>
+        <td><code style="font-family:var(--mono);font-size:10px;color:var(--muted)">O(b^(1+C/ε))</code></td>
+        <td><span class="prop-badge pb-r">✗ None</span></td>
+      </tr>
+      <tr>
+        <td><span class="prop-algo-name" style="color:#a855f7">A*</span></td>
+        <td>g(n)+h(n) priority queue</td>
+        <td><span class="prop-badge pb-g">✓ Yes</span></td>
+        <td><span class="prop-badge pb-g">✓ Yes</span></td>
+        <td><code style="font-family:var(--mono);font-size:10px;color:var(--muted)">O(b^d)</code></td>
+        <td><code style="font-family:var(--mono);font-size:10px;color:var(--muted)">O(b^d)</code></td>
+        <td><span class="prop-badge pb-p">✓ h(n) admissible</span></td>
+      </tr>
+      <tr>
+        <td><span class="prop-algo-name" style="color:#22d3ee">GBFS</span></td>
+        <td>h(n) only, greedy</td>
+        <td><span class="prop-badge pb-g">✓ Yes</span></td>
+        <td><span class="prop-badge pb-r">✗ No</span></td>
+        <td><code style="font-family:var(--mono);font-size:10px;color:var(--muted)">O(b^m)</code></td>
+        <td><code style="font-family:var(--mono);font-size:10px;color:var(--muted)">O(b^m)</code></td>
+        <td><span class="prop-badge pb-c">✓ h(n) greedy</span></td>
+      </tr>
+      <tr>
+        <td><span class="prop-algo-name" style="color:#fbbf24">Minimax</span></td>
+        <td>Adversarial α-β game tree</td>
+        <td><span class="prop-badge pb-g">✓ Yes</span></td>
+        <td><span class="prop-badge pb-y">Game-optimal</span></td>
+        <td><code style="font-family:var(--mono);font-size:10px;color:var(--muted)">O(b^d)</code></td>
+        <td><code style="font-family:var(--mono);font-size:10px;color:var(--muted)">O(bd)</code></td>
+        <td><span class="prop-badge pb-y">α-β pruning</span></td>
+      </tr>
+      <tr>
+        <td><span class="prop-algo-name" style="color:#a855f7">Naïve Bayes</span></td>
+        <td>Probabilistic dept prediction</td>
+        <td><span class="prop-badge pb-g">✓ Yes</span></td>
+        <td><span class="prop-badge" style="background:#a855f715;color:#a855f7;border:1px solid #a855f740">Probabilistic</span></td>
+        <td><code style="font-family:var(--mono);font-size:10px;color:var(--muted)">O(d×k)</code></td>
+        <td><code style="font-family:var(--mono);font-size:10px;color:var(--muted)">O(d×k)</code></td>
+        <td><span class="prop-badge" style="background:#a855f715;color:#a855f7;border:1px solid #a855f740">Laplace α=1</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+
+<!-- ══════════════ SECTION 5: EXPECTED PATHS ══════════════ -->
+<section class="section" id="section-paths">
+  <div class="section-badge">05 — EXPECTED PATHS</div>
+  <div class="section-title">Expected Path Results</div>
+  <div class="section-subtitle">Pre-computed paths for all sample route pairs across all algorithms. Green = optimal cost for that pair. ★ = best cost winner.</div>
+
+  <div class="path-table-wrap">
+    <table class="path-table" id="path-table">
+      <thead>
+        <tr>
+          <th>ROUTE PAIR</th>
+          <th>BFS</th><th>DFS</th><th>UCS</th><th>A*</th><th>GBFS</th>
+        </tr>
+      </thead>
+      <tbody id="path-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+
+
+  <!-- ═══════════ BAYES SECTION ═══════════ -->
+  <section class="section">
+    <div class="section-hdr">
+      <div class="section-icon" style="background:#a855f720;border-color:#a855f740">⚕</div>
+      <div>
+        <div class="section-title">Algorithm 8 — Naïve Bayes Theorem</div>
+        <div class="section-sub">Probabilistic department prediction based on patient symptoms</div>
+      </div>
+    </div>
+
+    <div class="row2">
+      <!-- Theory card -->
+      <div class="card">
+        <div class="card-title">Bayesian Probability Theory</div>
+        <p style="font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:12px">
+          Naïve Bayes applies Bayes' theorem with the <em>conditional independence assumption</em>:
+          each symptom contributes independently to the posterior probability of each department.
+        </p>
+        <div style="background:rgba(168,85,247,0.07);border:1px solid rgba(168,85,247,0.2);border-radius:8px;padding:14px;font-family:var(--mono);font-size:11.5px;color:#c4b5fd;line-height:1.9">
+          P(dept | e₁,e₂,...,eₙ)<br>
+          &nbsp;&nbsp;∝ P(dept) × P(e₁|dept) × P(e₂|dept) × ... × P(eₙ|dept)<br><br>
+          <span style="color:#7c3aed">Where:</span><br>
+          P(dept) = prior (visit frequency)<br>
+          P(eᵢ|dept) = likelihood (symptom given dept)<br>
+          Laplace smoothing α=1 prevents zero probabilities
+        </div>
+        <div style="margin-top:14px">
+          <div class="card-title" style="margin-bottom:8px">Key Properties</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
+              <span style="color:#a855f7">▸</span> Computationally O(d×k) — d features, k departments
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
+              <span style="color:#a855f7">▸</span> Works well with small datasets — no training needed
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
+              <span style="color:#a855f7">▸</span> Log-space computation prevents floating-point underflow
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
+              <span style="color:#a855f7">▸</span> Softmax converts log-scores to display probabilities
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
+              <span style="color:#a855f7">▸</span> Top prediction auto-fills navigation goal
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Likelihood table card -->
+      <div class="card">
+        <div class="card-title">Likelihood Table P(symptom | dept) — Sample</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:10.5px">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border)">Symptom</th>
+                <th style="padding:6px 4px;color:#ef4444;border-bottom:1px solid var(--border)">Emergency</th>
+                <th style="padding:6px 4px;color:#fbbf24;border-bottom:1px solid var(--border)">ICU</th>
+                <th style="padding:6px 4px;color:#a855f7;border-bottom:1px solid var(--border)">OT</th>
+                <th style="padding:6px 4px;color:#38bdf8;border-bottom:1px solid var(--border)">OPD</th>
+                <th style="padding:6px 4px;color:#22d3ee;border-bottom:1px solid var(--border)">Pharmacy</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+                <td style="padding:5px 8px;color:var(--text)">Chest Pain</td>
+                <td style="padding:5px 4px;text-align:center;color:#ef4444">55%</td>
+                <td style="padding:5px 4px;text-align:center;color:#fbbf24">70%</td>
+                <td style="padding:5px 4px;text-align:center;color:#a855f7">30%</td>
+                <td style="padding:5px 4px;text-align:center;color:#38bdf8">12%</td>
+                <td style="padding:5px 4px;text-align:center;color:#22d3ee">8%</td>
+              </tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+                <td style="padding:5px 8px;color:var(--text)">Bleeding</td>
+                <td style="padding:5px 4px;text-align:center;color:#ef4444">60%</td>
+                <td style="padding:5px 4px;text-align:center;color:#fbbf24">50%</td>
+                <td style="padding:5px 4px;text-align:center;color:#a855f7">65%</td>
+                <td style="padding:5px 4px;text-align:center;color:#38bdf8">6%</td>
+                <td style="padding:5px 4px;text-align:center;color:#22d3ee">5%</td>
+              </tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+                <td style="padding:5px 8px;color:var(--text)">Surgery Needed</td>
+                <td style="padding:5px 4px;text-align:center;color:#ef4444">30%</td>
+                <td style="padding:5px 4px;text-align:center;color:#fbbf24">45%</td>
+                <td style="padding:5px 4px;text-align:center;color:#a855f7">90%</td>
+                <td style="padding:5px 4px;text-align:center;color:#38bdf8">4%</td>
+                <td style="padding:5px 4px;text-align:center;color:#22d3ee">2%</td>
+              </tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+                <td style="padding:5px 8px;color:var(--text)">Prescription</td>
+                <td style="padding:5px 4px;text-align:center;color:#ef4444">20%</td>
+                <td style="padding:5px 4px;text-align:center;color:#fbbf24">60%</td>
+                <td style="padding:5px 4px;text-align:center;color:#a855f7">30%</td>
+                <td style="padding:5px 4px;text-align:center;color:#38bdf8">40%</td>
+                <td style="padding:5px 4px;text-align:center;color:#22d3ee">85%</td>
+              </tr>
+              <tr>
+                <td style="padding:5px 8px;color:var(--text)">Routine Visit</td>
+                <td style="padding:5px 4px;text-align:center;color:#ef4444">2%</td>
+                <td style="padding:5px 4px;text-align:center;color:#fbbf24">1%</td>
+                <td style="padding:5px 4px;text-align:center;color:#a855f7">1%</td>
+                <td style="padding:5px 4px;text-align:center;color:#38bdf8">50%</td>
+                <td style="padding:5px 4px;text-align:center;color:#22d3ee">30%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:14px;padding:10px;background:rgba(0,0,0,0.2);border-radius:6px">
+          <div style="font-size:10px;color:var(--muted);font-family:var(--mono);line-height:1.8">
+            <strong style="color:#a855f7">Integration with Navigation:</strong><br>
+            1. Patient selects symptoms → Bayes predicts top department<br>
+            2. Top department auto-fills the navigation GOAL field<br>
+            3. User picks algorithm → optimal route computed to that dept<br>
+            4. Result: symptom-to-door intelligent navigation
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- Summary insights -->
+  <div class="row2" id="insights-row"></div>
+</section>
+
+<!-- FOOTER -->
+<div style="text-align:center;padding:32px;border-top:1px solid var(--border);color:var(--muted);font-size:11px;font-family:var(--mono)">
+  Hospital Navigation System · AI Algorithm Analysis · MDSA 25MT1306E · Batch 12<br/>
+  <span style="color:var(--border2)">A. Samatha · J. Kiranmayi · Ayush Raj</span>
+</div>
+
+
+<script>
+// ════════════════════════════════════════
+//  DATA
+// ════════════════════════════════════════
+const GRAPH = {
+  "Reception":  {"OPD":2,"Emergency":3,"Pharmacy":4,"Elevator_A":2},
+  "OPD":        {"Reception":2,"X-Ray":3,"Laboratory":4,"Ward":5},
+  "Emergency":  {"Reception":3,"ICU":2,"OT":4,"Elevator_A":3},
+  "ICU":        {"Emergency":2,"OT":3,"Elevator_B":2,"Ward":4},
+  "OT":         {"ICU":3,"Emergency":4,"Elevator_B":2},
+  "X-Ray":      {"OPD":3,"Laboratory":2,"Elevator_A":4},
+  "Laboratory": {"OPD":4,"X-Ray":2,"Pharmacy":3,"Elevator_B":3},
+  "Pharmacy":   {"Reception":4,"Laboratory":3,"Ward":3},
+  "Ward":       {"OPD":5,"ICU":4,"Pharmacy":3,"Elevator_B":2},
+  "Elevator_A": {"Reception":2,"Emergency":3,"X-Ray":4,"Elevator_B":3},
+  "Elevator_B": {"ICU":2,"OT":2,"Laboratory":3,"Ward":2,"Elevator_A":3},
+};
+
+const HEURISTIC = {
+  "Reception":10,"OPD":8,"Emergency":6,"ICU":4,"OT":2,
+  "X-Ray":7,"Laboratory":5,"Pharmacy":9,"Ward":3,"Elevator_A":6,"Elevator_B":3
+};
+
+const NODE_POS = {
+  "Reception":  {x:14,y:50,floor:1},
+  "OPD":        {x:34,y:22,floor:1},
+  "Emergency":  {x:14,y:76,floor:1},
+  "X-Ray":      {x:54,y:12,floor:1},
+  "Laboratory": {x:54,y:50,floor:1},
+  "Pharmacy":   {x:34,y:76,floor:1},
+  "Elevator_A": {x:44,y:50,floor:1},
+  "Elevator_B": {x:66,y:50,floor:2},
+  "Ward":       {x:78,y:70,floor:2},
+  "ICU":        {x:78,y:32,floor:2},
+  "OT":         {x:92,y:16,floor:2},
+};
+
+const DEPT_META = {
+  "Reception":  {icon:"🏢",color:"#00d4ff",floor:"Ground"},
+  "OPD":        {icon:"👨‍⚕️",color:"#38bdf8",floor:"Ground"},
+  "Emergency":  {icon:"🚨",color:"#ef4444",floor:"Ground"},
+  "ICU":        {icon:"💉",color:"#fbbf24",floor:"Upper"},
+  "OT":         {icon:"🔬",color:"#a855f7",floor:"Upper"},
+  "X-Ray":      {icon:"🩻",color:"#34d399",floor:"Ground"},
+  "Laboratory": {icon:"🧪",color:"#fb923c",floor:"Ground"},
+  "Pharmacy":   {icon:"💊",color:"#22d3ee",floor:"Ground"},
+  "Ward":       {icon:"🛏️",color:"#9b5de5",floor:"Upper"},
+  "Elevator_A": {icon:"🛗",color:"#64748b",floor:"Ground"},
+  "Elevator_B": {icon:"🛗",color:"#64748b",floor:"Upper"},
+};
+
+// Pre-computed comparison results
+const CMP_DATA = {
+  "Reception→OT":{"BFS":{"path":["Reception","Emergency","OT"],"visited":10,"cost":7},"DFS":{"path":["Reception","OPD","X-Ray","Laboratory","Pharmacy","Ward","ICU","Emergency","OT"],"visited":9,"cost":23},"UCS":{"path":["Reception","Elevator_A","Elevator_B","OT"],"visited":10,"cost":7},"A*":{"path":["Reception","Elevator_A","Elevator_B","OT"],"visited":4,"cost":7},"GBFS":{"path":["Reception","Elevator_A","Elevator_B","OT"],"visited":4,"cost":7}},
+  "Reception→Ward":{"BFS":{"path":["Reception","OPD","Ward"],"visited":8,"cost":7},"DFS":{"path":["Reception","OPD","X-Ray","Laboratory","Pharmacy","Ward"],"visited":6,"cost":13},"UCS":{"path":["Reception","Elevator_A","Elevator_B","Ward"],"visited":11,"cost":7},"A*":{"path":["Reception","Elevator_A","Elevator_B","Ward"],"visited":4,"cost":7},"GBFS":{"path":["Reception","Elevator_A","Elevator_B","Ward"],"visited":4,"cost":7}},
+  "Reception→ICU":{"BFS":{"path":["Reception","Emergency","ICU"],"visited":9,"cost":5},"DFS":{"path":["Reception","OPD","X-Ray","Laboratory","Pharmacy","Ward","ICU"],"visited":7,"cost":17},"UCS":{"path":["Reception","Emergency","ICU"],"visited":7,"cost":5},"A*":{"path":["Reception","Elevator_A","Elevator_B","ICU"],"visited":4,"cost":7},"GBFS":{"path":["Reception","Elevator_A","Elevator_B","ICU"],"visited":4,"cost":7}},
+  "Emergency→Pharmacy":{"BFS":{"path":["Emergency","Reception","Pharmacy"],"visited":7,"cost":7},"DFS":{"path":["Emergency","Reception","OPD","X-Ray","Laboratory","Pharmacy"],"visited":6,"cost":13},"UCS":{"path":["Emergency","Reception","Pharmacy"],"visited":11,"cost":7},"A*":{"path":["Emergency","ICU","Elevator_B","Ward","Pharmacy"],"visited":7,"cost":9},"GBFS":{"path":["Emergency","OT","Elevator_B","Ward","Pharmacy"],"visited":5,"cost":11}},
+  "OPD→Ward":{"BFS":{"path":["OPD","Ward"],"visited":5,"cost":5},"DFS":{"path":["OPD","Reception","Emergency","ICU","OT","Elevator_B","Laboratory","Pharmacy","Ward"],"visited":11,"cost":21},"UCS":{"path":["OPD","Ward"],"visited":7,"cost":5},"A*":{"path":["OPD","Ward"],"visited":2,"cost":5},"GBFS":{"path":["OPD","Ward"],"visited":2,"cost":5}},
+  "Laboratory→OT":{"BFS":{"path":["Laboratory","Elevator_B","OT"],"visited":10,"cost":5},"DFS":{"path":["Laboratory","OPD","Reception","Emergency","ICU","OT"],"visited":6,"cost":14},"UCS":{"path":["Laboratory","Elevator_B","OT"],"visited":7,"cost":5},"A*":{"path":["Laboratory","Elevator_B","OT"],"visited":3,"cost":5},"GBFS":{"path":["Laboratory","Elevator_B","OT"],"visited":3,"cost":5}},
+  "Reception→X-Ray":{"BFS":{"path":["Reception","OPD","X-Ray"],"visited":6,"cost":5},"DFS":{"path":["Reception","OPD","X-Ray"],"visited":3,"cost":5},"UCS":{"path":["Reception","OPD","X-Ray"],"visited":8,"cost":5},"A*":{"path":["Reception","Elevator_A","X-Ray"],"visited":3,"cost":6},"GBFS":{"path":["Reception","Elevator_A","X-Ray"],"visited":3,"cost":6}},
+  "Pharmacy→OT":{"BFS":{"path":["Pharmacy","Reception","Emergency","OT"],"visited":11,"cost":11},"DFS":{"path":["Pharmacy","Reception","OPD","X-Ray","Laboratory","Elevator_B","ICU","Emergency","OT"],"visited":9,"cost":22},"UCS":{"path":["Pharmacy","Ward","Elevator_B","OT"],"visited":11,"cost":7},"A*":{"path":["Pharmacy","Ward","Elevator_B","OT"],"visited":5,"cost":7},"GBFS":{"path":["Pharmacy","Ward","Elevator_B","OT"],"visited":4,"cost":7}},
+};
+
+const ALGOS = ["BFS","DFS","UCS","A*","GBFS"];
+const ALGO_COLORS = {"BFS":"#38bdf8","DFS":"#fb923c","UCS":"#34d399","A*":"#a855f7","GBFS":"#22d3ee"};
+
+// ════════════════════════════════════════
+//  SVG MAP
+// ════════════════════════════════════════
+const NS = "http://www.w3.org/2000/svg";
+function mkEl(tag, attrs={}) {
+  const el = document.createElementNS(NS, tag);
+  for(const[k,v] of Object.entries(attrs)) el.setAttribute(k,String(v));
+  return el;
+}
+
+function posToSVG(node) {
+  const p = NODE_POS[node];
+  if(p.floor===1) return {x: 10+(p.x/60)*590, y: 10+(p.y/100)*540};
+  else {
+    const xf = (p.x-62)/38;
+    return {x: 615+xf*435, y: 10+(p.y/100)*540};
+  }
+}
+
+let currentFloor = 0; // 0=both
+
+function buildMap() {
+  const eg = document.getElementById("map-edges-g");
+  const ng = document.getElementById("map-nodes-g");
+  eg.innerHTML=""; ng.innerHTML="";
+
+  const drawn = new Set();
+  for(const[from,nbs] of Object.entries(GRAPH)) {
+    for(const[to,w] of Object.entries(nbs)) {
+      const key=[from,to].sort().join("|");
+      if(drawn.has(key)) continue; drawn.add(key);
+      const p1=posToSVG(from), p2=posToSVG(to);
+      const f1=NODE_POS[from].floor, f2=NODE_POS[to].floor;
+      if(currentFloor!==0 && f1!==currentFloor && f2!==currentFloor) continue;
+
+      const line=mkEl("line",{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,
+        stroke:"#1e3a5a","stroke-width":"1.5","stroke-dasharray":"5 4"});
+      eg.appendChild(line);
+
+      const mx=(p1.x+p2.x)/2, my=(p1.y+p2.y)/2-5;
+      const wt=mkEl("text",{x:mx,y:my,"text-anchor":"middle",
+        "font-family":"JetBrains Mono","font-size":"10",fill:"#2a5070",opacity:"0.85"});
+      wt.textContent=w;
+      eg.appendChild(wt);
+    }
+  }
+
+  for(const[name,pos] of Object.entries(NODE_POS)) {
+    if(currentFloor!==0 && pos.floor!==currentFloor) continue;
+    const {x,y}=posToSVG(name);
+    const meta=DEPT_META[name]||{};
+    const isElev=name.startsWith("Elevator");
+    const g=mkEl("g");
+
+    if(isElev){
+      const r=mkEl("rect",{x:x-26,y:y-16,width:52,height:32,rx:7,
+        fill:"#0a1828",stroke:meta.color||"#2a5a7a","stroke-width":"1.5"});
+      const ico=mkEl("text",{x,y:y+2,"text-anchor":"middle","dominant-baseline":"central","font-size":"14"});
+      ico.textContent=meta.icon||"🛗";
+      const lbl=mkEl("text",{x,y:y+26,"text-anchor":"middle",
+        "font-family":"JetBrains Mono","font-size":"8",fill:"#4a7090"});
+      lbl.textContent=name.replace("_"," ");
+      g.append(r,ico,lbl);
+    } else {
+      const ring=mkEl("circle",{cx:x,cy:y,r:32,fill:"none",
+        stroke:meta.color||"#00d4ff","stroke-width":"1",opacity:"0.2"});
+      const c=mkEl("circle",{cx:x,cy:y,r:26,
+        fill:"#0d1e35",stroke:meta.color||"#00d4ff","stroke-width":"2"});
+      const ico=mkEl("text",{x,y:y+1,"text-anchor":"middle","dominant-baseline":"central","font-size":"17"});
+      ico.textContent=meta.icon||"🏥";
+      const lbl=mkEl("text",{x,y:y+44,"text-anchor":"middle",
+        "font-family":"Inter, sans-serif","font-size":"10.5",
+        fill:"#5a8ab4","font-weight":"500"});
+      lbl.textContent=name;
+      g.append(ring,c,ico,lbl);
+    }
+    ng.appendChild(g);
+  }
+}
+
+function showFloor(f, btn) {
+  currentFloor=f;
+  document.querySelectorAll(".floor-tab").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  buildMap();
+}
+buildMap();
+
+// ════════════════════════════════════════
+//  ADJACENCY LIST
+// ════════════════════════════════════════
+function buildAdjList() {
+  const grid=document.getElementById("adj-grid");
+  for(const[node,nbs] of Object.entries(GRAPH)) {
+    const meta=DEPT_META[node]||{};
+    const isElev=node.startsWith("Elevator");
+    const floorStr=isElev?"Elevator":(meta.floor||"—");
+    const col=meta.color||"#64748b";
+    const card=document.createElement("div");
+    card.className="adj-card";
+    let edgesHTML="";
+    for(const[nb,w] of Object.entries(nbs)){
+      const nbMeta=DEPT_META[nb]||{};
+      edgesHTML+=`<div class="adj-edge">
+        <span class="adj-edge-name">${nbMeta.icon||"🏥"} ${nb}</span>
+        <span class="adj-edge-w">w=${w}</span>
+      </div>`;
+    }
+    card.innerHTML=`
+      <div class="adj-card-hdr">
+        <span class="adj-icon">${meta.icon||"🏥"}</span>
+        <span class="adj-node-name">${node}</span>
+        <span class="adj-floor-badge" style="border-color:${col}50;color:${col}">${floorStr}</span>
+      </div>
+      <div class="adj-edges">${edgesHTML}</div>`;
+    grid.appendChild(card);
+  }
+}
+buildAdjList();
+
+// ════════════════════════════════════════
+//  HEURISTIC GRID
+// ════════════════════════════════════════
+function buildHeuristic() {
+  const maxH=Math.max(...Object.values(HEURISTIC));
+  const grid=document.getElementById("h-grid");
+  const sorted=Object.entries(HEURISTIC).sort((a,b)=>b[1]-a[1]);
+  for(const[node,val] of Object.entries(HEURISTIC)){
+    const meta=DEPT_META[node]||{};
+    const pct=Math.round((val/maxH)*100);
+    const card=document.createElement("div");
+    card.className="h-card";
+    card.innerHTML=`
+      <div class="h-icon">${meta.icon||"🏥"}</div>
+      <div class="h-node">${node}</div>
+      <div class="h-val">${val}</div>
+      <div class="h-label">HEURISTIC h(n)</div>
+      <div class="h-bar-wrap"><div class="h-bar" style="width:${pct}%"></div></div>`;
+    grid.appendChild(card);
+  }
+
+  // rank list
+  const rl=document.getElementById("h-rank-list");
+  sorted.forEach(([node,val],i)=>{
+    const meta=DEPT_META[node]||{};
+    const pct=Math.round((val/maxH)*100);
+    const div=document.createElement("div");
+    div.style.cssText="display:flex;align-items:center;gap:8px;font-size:11px";
+    div.innerHTML=`
+      <span style="font-family:var(--mono);color:var(--muted);min-width:18px">${String(i+1).padStart(2,"0")}</span>
+      <span>${meta.icon||"🏥"}</span>
+      <span style="flex:1;color:var(--text)">${node}</span>
+      <div style="flex:0 0 80px;height:4px;background:var(--dim);border-radius:2px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:var(--teal);border-radius:2px"></div>
+      </div>
+      <span style="font-family:var(--mono);color:var(--teal);min-width:22px;text-align:right">${val}</span>`;
+    rl.appendChild(div);
+  });
+}
+buildHeuristic();
+
+// ════════════════════════════════════════
+//  COMPARISON
+// ════════════════════════════════════════
+let activePair = Object.keys(CMP_DATA)[0];
+
+function buildPairBtns() {
+  const wrap=document.getElementById("pair-btns");
+  wrap.style.cssText="display:flex;flex-wrap:wrap;gap:6px";
+  for(const pair of Object.keys(CMP_DATA)){
+    const btn=document.createElement("button");
+    btn.className="pair-btn"+(pair===activePair?" active":"");
+    btn.textContent=pair;
+    btn.onclick=()=>{
+      activePair=pair;
+      document.querySelectorAll(".pair-btn").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      buildCmpCards();
+    };
+    wrap.appendChild(btn);
+  }
+}
+
+function buildCmpCards(){
+  const grid=document.getElementById("cmp-grid");
+  grid.innerHTML="";
+  const row=CMP_DATA[activePair];
+  const minCost=Math.min(...ALGOS.map(a=>row[a].cost));
+  const minVis =Math.min(...ALGOS.map(a=>row[a].visited));
+  const maxCost=Math.max(...ALGOS.map(a=>row[a].cost));
+  const maxVis =Math.max(...ALGOS.map(a=>row[a].visited));
+
+  for(const algo of ALGOS){
+    const d=row[algo]; const col=ALGO_COLORS[algo]||"#aaa";
+    const isBestCost=d.cost===minCost;
+    const isBestVis =d.visited===minVis;
+    const costPct=maxCost>0?Math.round((d.cost/maxCost)*100):0;
+    const visPct =maxVis>0?Math.round((d.visited/maxVis)*100):0;
+    const pathStr=d.path.map((n,i)=>
+      `<span class="cmp-path-node">${n}</span>${i<d.path.length-1?'<span class="cmp-path-arrow"> → </span>':""}`
+    ).join("");
+    const card=document.createElement("div");
+    card.className="cmp-card"+(isBestCost?" best-cost":"")+(isBestVis&&!isBestCost?" best-visited":"");
+    card.innerHTML=`
+      <div class="cmp-hdr">
+        <div class="cmp-abbr" style="color:${col}">${algo}</div>
+        <div class="cmp-name">${algo==="A*"?"A* Search":algo==="GBFS"?"Greedy BFS":algo+" Search"}</div>
+      </div>
+      <div class="cmp-body">
+        <div class="cmp-metric">
+          <div class="cmp-metric-label">PATH COST</div>
+          <div class="cmp-metric-val" style="color:${isBestCost?'var(--green)':col}">${d.cost}</div>
+          <div class="cmp-bar-wrap"><div class="cmp-bar" style="width:${costPct}%;background:${col}"></div></div>
+        </div>
+        <div class="cmp-metric">
+          <div class="cmp-metric-label">NODES VISITED</div>
+          <div class="cmp-metric-val" style="color:${isBestVis?'var(--amber)':'var(--text)'};font-size:16px">${d.visited}</div>
+          <div class="cmp-bar-wrap"><div class="cmp-bar" style="width:${visPct}%;background:${isBestVis?'var(--amber)':'var(--muted)'}"></div></div>
+        </div>
+        <div class="cmp-path">${pathStr}</div>
+      </div>`;
+    grid.appendChild(card);
+  }
+}
+
+buildPairBtns();
+buildCmpCards();
+
+// ════════════════════════════════════════
+//  PATH TABLE
+// ════════════════════════════════════════
+function buildPathTable() {
+  const tbody=document.getElementById("path-tbody");
+  for(const[pair,row] of Object.entries(CMP_DATA)){
+    const minCost=Math.min(...ALGOS.map(a=>row[a].cost));
+    const tr=document.createElement("tr");
+    let cells=`<td class="td-pair">${pair}</td>`;
+    for(const algo of ALGOS){
+      const d=row[algo];
+      const isOpt=d.cost===minCost;
+      const pathStr=d.path.map(n=>`<span class="pn">${n}</span>`).join(" <span style='color:var(--muted)'>›</span> ");
+      cells+=`<td>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span class="td-cost" style="color:${isOpt?'var(--green)':'var(--teal)'}">${d.cost}</span>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--muted)">(${d.visited} visited)</span>
+          ${isOpt?'<span style="color:var(--green);font-size:10px">★</span>':""}
+        </div>
+        <div class="td-path">${pathStr}</div>
+      </td>`;
+    }
+    tr.innerHTML=cells;
+    tbody.appendChild(tr);
+  }
+}
+buildPathTable();
+
+// ════════════════════════════════════════
+//  INSIGHTS
+// ════════════════════════════════════════
+function buildInsights() {
+  const wrap=document.getElementById("insights-row");
+  // Count wins
+  const wins={BFS:0,DFS:0,UCS:0,"A*":0,GBFS:0};
+  const visWins={BFS:0,DFS:0,UCS:0,"A*":0,GBFS:0};
+  for(const row of Object.values(CMP_DATA)){
+    const minC=Math.min(...ALGOS.map(a=>row[a].cost));
+    const minV=Math.min(...ALGOS.map(a=>row[a].visited));
+    ALGOS.forEach(a=>{
+      if(row[a].cost===minC) wins[a]++;
+      if(row[a].visited===minV) visWins[a]++;
+    });
+  }
+  const total=Object.keys(CMP_DATA).length;
+  const costInsight=document.createElement("div");
+  costInsight.style.cssText="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px";
+  let wHTML="<div style='font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;margin-bottom:12px'>OPTIMAL COST WINS</div>";
+  for(const[a,w] of Object.entries(wins)){
+    const col=ALGO_COLORS[a]||"#aaa";
+    const pct=Math.round((w/total)*100);
+    wHTML+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-family:var(--mono);font-size:11px;color:${col};min-width:36px">${a}</span>
+      <div style="flex:1;height:6px;background:var(--dim);border-radius:3px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${col};border-radius:3px"></div>
+      </div>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${w}/${total}</span>
+    </div>`;
+  }
+  costInsight.innerHTML=wHTML;
+
+  const visInsight=document.createElement("div");
+  visInsight.style.cssText="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px";
+  let vHTML="<div style='font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;margin-bottom:12px'>FEWEST NODES VISITED</div>";
+  for(const[a,w] of Object.entries(visWins)){
+    const col=ALGO_COLORS[a]||"#aaa";
+    const pct=Math.round((w/total)*100);
+    vHTML+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-family:var(--mono);font-size:11px;color:${col};min-width:36px">${a}</span>
+      <div style="flex:1;height:6px;background:var(--dim);border-radius:3px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${col};border-radius:3px"></div>
+      </div>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${w}/${total}</span>
+    </div>`;
+  }
+  visInsight.innerHTML=vHTML;
+
+  wrap.appendChild(costInsight);
+  wrap.appendChild(visInsight);
+}
+buildInsights();
+
+// ════════════════════════════════════════
+//  TOC DOTS
+// ════════════════════════════════════════
+function scrollTo(id) { document.querySelector(id).scrollIntoView({behavior:"smooth"}); }
+
+const sections=["#section-map","#section-adj","#section-heuristic","#section-compare","#section-paths"];
+const dots=document.querySelectorAll(".toc-dot");
+
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      const idx=sections.indexOf("#"+e.target.id);
+      if(idx>=0){
+        dots.forEach(d=>d.classList.remove("active"));
+        dots[idx]?.classList.add("active");
+      }
+    }
+  });
+},{threshold:0.4});
+
+sections.forEach(s=>{ const el=document.querySelector(s); if(el) obs.observe(el); });
+</script>
+</body>
+</html>
