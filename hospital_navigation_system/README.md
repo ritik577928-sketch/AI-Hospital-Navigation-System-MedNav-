@@ -36,8 +36,6 @@ Then open: http://127.0.0.1:5000
 - Department info on node click
 
 ## Team
-- A. Samatha
-- J. Kiranmayi
-- Ayush Raj
+- Ritik Kumar
 
 Course: MDSA (25MT1306E) | Batch 12
